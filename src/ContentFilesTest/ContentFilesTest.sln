@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetFramework46", "DotNetFramework46\DotNetFramework46.csproj", "{06DB0E77-7DAD-4557-8832-421E7DD62540}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotNetStandard", "DotNetStandard\DotNetStandard.csproj", "{78FE3630-4C36-4009-BBF2-247243F9D0E4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{06DB0E77-7DAD-4557-8832-421E7DD62540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06DB0E77-7DAD-4557-8832-421E7DD62540}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06DB0E77-7DAD-4557-8832-421E7DD62540}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06DB0E77-7DAD-4557-8832-421E7DD62540}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78FE3630-4C36-4009-BBF2-247243F9D0E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78FE3630-4C36-4009-BBF2-247243F9D0E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78FE3630-4C36-4009-BBF2-247243F9D0E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78FE3630-4C36-4009-BBF2-247243F9D0E4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
