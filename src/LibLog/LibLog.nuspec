@@ -34,12 +34,11 @@ This package is a variation of option 3 but will automatically wire things up to
 			</group>
 		</dependencies>
         <contentFiles>
-            <files include="contentFiles\cs\**\*.*" buildAction="Compile" />
+            <files include="contentFiles\App_Packages\**\*.*" buildAction="Compile" />
         </contentFiles>
     </metadata>
     <files>
       <file src="LibLog.cs.pp" target="content\App_Packages\LibLog.4.2\LibLog.cs.pp" />
-      <file src="LibLog.cs.pp" target="contentFiles\cs\any" />
-      <file src="LibLog.cs.pp" target="contentFiles\cs\netstandard1.1" />
+      <file src="LibLog.cs.pp" target="contentFiles\cs\any\App_Packages\LibLog.4.2\LibLog.cs.pp" />
     </files>
 </package>
