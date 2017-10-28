@@ -1089,17 +1089,21 @@ namespace YourRootNamespace.LibLog.LogProviders
                     return IsLogLevelEnable(logLevel);
                 }
 
-                var callsiteMessageFunc = messageFunc;
-                messageFunc = LogMessageFormatter.SimulateStructuredLogging(messageFunc, formatParameters);
-
                 if (_logEventInfoFact != null)
                 {
                     if (IsLogLevelEnable(logLevel))
                     {
+                        IEnumerable<string> patternMatches;
+
+                        string formattedMessage = 
+                            LogMessageFormatter.FormatStructuredMessage(messageFunc(),
+                                                                        formatParameters,
+                                                                        out patternMatches);
+
                         Type callsiteLoggerType = typeof(NLogLogger);
 #if !LIBLOG_PORTABLE
                         // Callsite HACK - Extract the callsite-logger-type from the messageFunc
-                        var methodType = callsiteMessageFunc.Method.DeclaringType;
+                        var methodType = messageFunc.Method.DeclaringType;
                         if (methodType == typeof(LogExtensions) || (methodType != null && methodType.DeclaringType == typeof(LogExtensions)))
                         {
                             callsiteLoggerType = typeof(LogExtensions);
@@ -1110,13 +1114,14 @@ namespace YourRootNamespace.LibLog.LogProviders
                         }
 #endif
                         var nlogLevel = this.TranslateLevel(logLevel);
-                        var nlogEvent = _logEventInfoFact(_logger.Name, nlogLevel, messageFunc(), exception);
+                        var nlogEvent = _logEventInfoFact(_logger.Name, nlogLevel, formattedMessage, exception);
                         _logger.Log(callsiteLoggerType, nlogEvent);
                         return true;
                     }
                     return false;
                 }
 
+                messageFunc = LogMessageFormatter.SimulateStructuredLogging(messageFunc, formatParameters);
                 if (exception != null)
                 {
                     return LogException(logLevel, messageFunc, exception);
@@ -1380,8 +1385,6 @@ namespace YourRootNamespace.LibLog.LogProviders
         internal class Log4NetLogger
         {
             private readonly dynamic _logger;
-            private static Type s_callerStackBoundaryType;
-            private static readonly object CallerStackBoundaryTypeSync = new object();
 
             private static readonly object _levelDebug;
             private static readonly object _levelInfo;
@@ -1551,6 +1554,7 @@ namespace YourRootNamespace.LibLog.LogProviders
                     return false;
                 }
 
+
                 string message = messageFunc();
 
                 IEnumerable<string> patternMatches;
@@ -1560,32 +1564,25 @@ namespace YourRootNamespace.LibLog.LogProviders
                                                                 formatParameters,
                                                                 out patternMatches);
 
-                // determine correct caller - this might change due to jit optimizations with method inlining
-                if (s_callerStackBoundaryType == null)
-                {
-                    lock (CallerStackBoundaryTypeSync)
-                    {
+                Type callerStackBoundaryType = typeof(Log4NetLogger);
 #if !LIBLOG_PORTABLE
-                        StackTrace stack = new StackTrace();
-                        Type thisType = GetType();
-                        s_callerStackBoundaryType = Type.GetType("LoggerExecutionWrapper");
-                        for (var i = 1; i < stack.FrameCount; i++)
-                        {
-                            if (!IsInTypeHierarchy(thisType, stack.GetFrame(i).GetMethod().DeclaringType))
-                            {
-                                s_callerStackBoundaryType = stack.GetFrame(i - 1).GetMethod().DeclaringType;
-                                break;
-                            }
-                        }
-#else
-                        s_callerStackBoundaryType = typeof (LoggerExecutionWrapper);
-#endif
-                    }
+                // Callsite HACK - Extract the callsite-logger-type from the messageFunc
+                var methodType = messageFunc.Method.DeclaringType;
+                if (methodType == typeof(LogExtensions) || (methodType != null && methodType.DeclaringType == typeof(LogExtensions)))
+                {
+                    callerStackBoundaryType = typeof(LogExtensions);
                 }
+                else if (methodType == typeof(LoggerExecutionWrapper) || (methodType != null && methodType.DeclaringType == typeof(LoggerExecutionWrapper)))
+                {
+                    callerStackBoundaryType = typeof(LoggerExecutionWrapper);
+                }
+#else
+                callerStackBoundaryType = typeof(LoggerExecutionWrapper);
+#endif
 
                 var translatedLevel = TranslateLevel(logLevel);
 
-                object loggingEvent = _createLoggingEvent(_logger, s_callerStackBoundaryType, translatedLevel, formattedMessage, exception);
+                object loggingEvent = _createLoggingEvent(_logger, callerStackBoundaryType, translatedLevel, formattedMessage, exception);
 
                 PopulateProperties(loggingEvent, patternMatches, formatParameters);
 
@@ -1604,19 +1601,6 @@ namespace YourRootNamespace.LibLog.LogProviders
                 {
                     _loggingEventPropertySetter(loggingEvent, keyValuePair.Key, keyValuePair.Value);
                 }
-            }
-
-            private static bool IsInTypeHierarchy(Type currentType, Type checkType)
-            {
-                while (currentType != null && currentType != typeof(object))
-                {
-                    if (currentType == checkType)
-                    {
-                        return true;
-                    }
-                    currentType = currentType.GetBaseTypePortable();
-                }
-                return false;
             }
 
             private bool IsLogLevelEnable(LogLevel logLevel)
@@ -1789,7 +1773,6 @@ namespace YourRootNamespace.LibLog.LogProviders
                 {
                     return _shouldLog(_loggerName, severity);
                 }
-
 
                 messageFunc = LogMessageFormatter.SimulateStructuredLogging(messageFunc, formatParameters);
                 if (exception != null)
@@ -2303,8 +2286,7 @@ namespace YourRootNamespace.LibLog.LogProviders
                 return targetMessage;
             }
 
-            List<string> processedArguments = new List<string>();
-            patternMatches = processedArguments;
+            List<string> processedArguments = null;
 
             foreach (Match match in Pattern.Matches(targetMessage))
             {
@@ -2313,6 +2295,7 @@ namespace YourRootNamespace.LibLog.LogProviders
                 int notUsed;
                 if (!int.TryParse(arg, out notUsed))
                 {
+                    processedArguments = processedArguments ?? new List<string>(formatParameters.Length);
                     int argumentIndex = processedArguments.IndexOf(arg);
                     if (argumentIndex == -1)
                     {
@@ -2321,9 +2304,12 @@ namespace YourRootNamespace.LibLog.LogProviders
                     }
 
                     targetMessage = ReplaceFirst(targetMessage, match.Value,
-                        "{" + argumentIndex + match.Groups["format"].Value + "}");
+                        string.Concat("{", argumentIndex.ToString(), match.Groups["format"].Value, "}"));
                 }
             }
+
+            patternMatches = processedArguments ?? Enumerable.Empty<string>();
+
             try
             {
                 return string.Format(CultureInfo.InvariantCulture, targetMessage, formatParameters);
