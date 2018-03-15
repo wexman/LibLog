@@ -55,9 +55,9 @@ namespace YourRootNamespace.Logging
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
 #if LIBLOG_PROVIDERS_ONLY
-    using YourRootNamespace.LibLog.LogProviders;
+    using global::YourRootNamespace.LibLog.LogProviders;
 #else
-    using YourRootNamespace.Logging.LogProviders;
+    using global::YourRootNamespace.Logging.LogProviders;
 #endif
     using System;
 #if !LIBLOG_PROVIDERS_ONLY
